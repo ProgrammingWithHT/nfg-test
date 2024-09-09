@@ -2,8 +2,8 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/auth");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto"); // For generating random OTP
-const transporter = require("../config/mail/mailconfig");
-const { CleanHTMLData, CleanDBData } = require("../config/database/sanetize");
+const transporter = require("../../config/mail/mailconfig");
+const { CleanHTMLData, CleanDBData } = require("../../config/database/sanetize");
 const logger = require('../helpers/logger'); // Import the logger
 const ip = require('ip');
 

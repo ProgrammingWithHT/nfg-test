@@ -1,5 +1,5 @@
 const WaitlistUser = require('../models/waitlist');
-const { CleanHTMLData, CleanDBData } = require("../config/database/sanetize");
+const { CleanHTMLData, CleanDBData } = require("../../config/database/sanetize");
 const logger = require('../helpers/logger'); // Import the logger
 const ip = require('ip');
 exports.joinWaitlist = async (req, res) => {
