@@ -27,7 +27,9 @@ app.post('/sumsub/webhook', sumsubController.handleSumsubWebhook);
 app.use('/api/bybit', bybitRoutes);
 app.use('/api/nfg', payment);
 
-
+app.get("/", (req,res)=>{
+  res.json({success: true})
+})
 
 
 mongoose.connect(process.env.CONNECTION_STRING, {
