@@ -3,10 +3,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
-const sumsubController = require('./controllers/sumsubController');
-const packagesRoutes = require('./routes/packages'); // Import the packages routes
-const waitlistRoutes = require('./routes/waitlist'); // Import the waitlist routes
-const bybitRoutes = require('./routes/bybitRoutes');
+const sumsubController = require('./src/controllers/sumsubController');
+const packagesRoutes = require('./src/routes/packages'); // Import the packages routes
+const waitlistRoutes = require('./src/routes/waitlist'); // Import the waitlist routes
+const bybitRoutes = require('./src/routes/bybitRoutes');
 
 const app = express();
 app.use(cors());
@@ -15,9 +15,9 @@ app.use(express.json());
 
 
 // Route Imports
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./src/routes/auth');
 app.use('/waitlist', waitlistRoutes);
-const payment = require('./routes/paymentRoute');
+const payment = require('./src/routes/paymentRoute');
 
 
 app.use('/auth', authRoutes);
