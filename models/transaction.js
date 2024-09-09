@@ -13,12 +13,14 @@ const transactionSchema = new mongoose.Schema({
     
     pkgid: { type: String, required: true }, // Package ID that selected from packages table
     typeTransaction: { type: String, required: true }, // Transaction type (e.g., Sale, Replenishment, etc.)
-
+    
     //For partial payment handling
     totalAmountFiat: {type: Number, default: null},  
     totalAmountCurrency: {type: Number, default: null},
     payExtra: {type: Number, default: null},
-
+    paidPartialAmount: { type: Number, default: 0 }, // Partial Amount Paid
+    paidPartialAmountUSD: { type: Number, default: 0}, // Partial Amount Paid USD
+    
     
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }

@@ -178,12 +178,16 @@ exports.handlePaymentCallback = async (req, res) => {
                         transaction.chargeStatus = chargeStatus;
                         transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
                         transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
-    
+                        transaction.paidPartialAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString();
+                        transaction.paidPartialAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString();
+
                         await transaction.save();
                         await User.findByIdAndUpdate(
                             userId,
                             {
                                 $set: {
+                                    systemStatus: systemStatus,
+                                    chargeStatus: chargeStatus,
                                     pkgid: planId
                                 }
                             },
@@ -192,7 +196,6 @@ exports.handlePaymentCallback = async (req, res) => {
                     }
                     else if(systemStatus === "Done" && chargeStatus === "Done"){
                         console.log('done done calling')
-                        // If paymentId exists, update the systemStatus
                         transaction.systemStatus = systemStatus;
                         transaction.chargeStatus = chargeStatus;
                         transaction.paidAmount = paidAmount.toString();
@@ -203,6 +206,8 @@ exports.handlePaymentCallback = async (req, res) => {
                             userId,
                             {
                                 $set: {
+                                    systemStatus: systemStatus,
+                                    chargeStatus: chargeStatus,
                                     pkgid: planId
                                 }
                             },
@@ -212,13 +217,28 @@ exports.handlePaymentCallback = async (req, res) => {
                         console.log('done partial calling..')
                         transaction.systemStatus = systemStatus;
                         transaction.chargeStatus = chargeStatus;
+                        transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
+                        transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
+                        transaction.paidPartialAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString();
+                        transaction.paidPartialAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString();
+                        transaction.totalAmountCurrency = totalAmountCurrency;
+                        transaction.payExtra = payExtra;
                         await transaction.save();
+
+                        await User.findByIdAndUpdate(
+                            userId,
+                            {
+                                $set: {
+                                    systemStatus: systemStatus,
+                                    chargeStatus: chargeStatus
+                                }
+                            },
+                            { new: true }
+                        );
                     }
 
                 } else {
                     console.log('pending else calling')
-
-                    // If paymentId does not exist, create a new transaction
                     const transactionData = {
                         orderId: orderId,
                         paymentId: chargeId,
@@ -234,7 +254,7 @@ exports.handlePaymentCallback = async (req, res) => {
                     transaction = new Transaction(transactionData);
                     await transaction.save();
 
-                    if(systemStatus === "Done" && chargeStatus === "Done"){
+                    if(chargeStatus === "Done"){
                         console.log('at pending done done')
                         await User.findByIdAndUpdate(
                             userId,
@@ -242,7 +262,6 @@ exports.handlePaymentCallback = async (req, res) => {
                                 $set: {
                                     systemStatus: systemStatus,
                                     chargeStatus: chargeStatus,
-                                    pkgid: planId
                                 }
                             },
                             { new: true }
@@ -250,19 +269,22 @@ exports.handlePaymentCallback = async (req, res) => {
                     }
                     else if(chargeStatus === "Partial"){
                         console.log('pending partial calling')
-                        // If paymentId exists, update the systemStatus
-                        transaction.systemStatus = systemStatus;
-                        transaction.chargeStatus = chargeStatus;
-                        transaction.paidAmount = paidAmount.toString();
-                        transaction.paidAmountUSD = paidAmountUSD.toString();
                         transaction.totalAmountFiat = totalAmountFiat;
                         transaction.totalAmountCurrency = totalAmountCurrency;
                         transaction.payExtra = payExtra;
-
                         await transaction.save();
 
+                        await User.findByIdAndUpdate(
+                            userId,
+                            {
+                                $set: {
+                                    systemStatus: systemStatus,
+                                    chargeStatus: chargeStatus,
+                                }
+                            },
+                            { new: true }
+                        );
                     }
-
                 }
 
                 return res.status(200).json({ status: 'SUCCESS', message: `${chargeStatus} Payment processed and stored in the database` });
@@ -278,5 +300,3 @@ exports.handlePaymentCallback = async (req, res) => {
         res.status(500).json({ error: 'Error processing callback' });
     }
 };
-
-

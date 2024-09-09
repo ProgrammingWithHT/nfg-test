@@ -15,6 +15,7 @@ const userAuthSchema = new mongoose.Schema(
     bybituid: { type: String },
     type: String,
     systemStatus: { type: String },
+    chargeStatus: { type: String },
     pkgid: {type: String},
   },
   { collection: "userdata", versionKey: false }
