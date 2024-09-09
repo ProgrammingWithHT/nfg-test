@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
-const sumsubController = require('./src/controllers/sumsubController');
+const sumsubController = require('./controllers/sumsubController');
 const packagesRoutes = require('./routes/packages'); // Import the packages routes
 const waitlistRoutes = require('./routes/waitlist'); // Import the waitlist routes
 const bybitRoutes = require('./routes/bybitRoutes');
