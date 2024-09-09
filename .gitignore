@@ -1,0 +1,3 @@
+# files to Be ignored
+.env
+node_modules
