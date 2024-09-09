@@ -255,7 +255,7 @@ exports.handlePaymentCallback = async (req, res) => {
                     await transaction.save();
 
                     if(chargeStatus === "Done"){
-                        console.log('at pending done done')
+                        console.log('first at pending done')
                         await User.findByIdAndUpdate(
                             userId,
                             {
@@ -268,7 +268,7 @@ exports.handlePaymentCallback = async (req, res) => {
                         );
                     }
                     else if(chargeStatus === "Partial"){
-                        console.log('pending partial calling')
+                        console.log('first pending partial calling')
                         transaction.totalAmountFiat = totalAmountFiat;
                         transaction.totalAmountCurrency = totalAmountCurrency;
                         transaction.payExtra = payExtra;
