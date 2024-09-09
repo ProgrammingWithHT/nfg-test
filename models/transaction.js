@@ -18,8 +18,6 @@ const transactionSchema = new mongoose.Schema({
     totalAmountFiat: {type: Number, default: null},  
     totalAmountCurrency: {type: Number, default: null},
     payExtra: {type: Number, default: null},
-    paidPartialAmount: { type: Number, default: 0 }, // Partial Amount Paid
-    paidPartialAmountUSD: { type: Number, default: 0}, // Partial Amount Paid USD
     
     
     createdAt: { type: Date, default: Date.now },

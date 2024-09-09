@@ -178,8 +178,6 @@ exports.handlePaymentCallback = async (req, res) => {
                         transaction.chargeStatus = chargeStatus;
                         transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
                         transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
-                        transaction.paidPartialAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString();
-                        transaction.paidPartialAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString();
 
                         await transaction.save();
                         await User.findByIdAndUpdate(
@@ -219,8 +217,6 @@ exports.handlePaymentCallback = async (req, res) => {
                         transaction.chargeStatus = chargeStatus;
                         transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
                         transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
-                        transaction.paidPartialAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString();
-                        transaction.paidPartialAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString();
                         transaction.totalAmountCurrency = totalAmountCurrency;
                         transaction.payExtra = payExtra;
                         await transaction.save();
