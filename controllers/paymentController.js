@@ -239,23 +239,23 @@ exports.handlePaymentCallback = async (req, res) => {
 
                 } else {
                     console.log('pending else calling')
-                    const transactionData = {
-                        orderId: orderId,
-                        paymentId: chargeId,
-                        senderId: userId,
-                        paymentcurrency: currency,  // BNB, BTC, etc.
-                        paidAmount: paidAmount.toString(),
-                        paidAmountUSD: paidAmountUSD.toString(),
-                        pkgid: planId,
-                        systemStatus: systemStatus,
-                        chargeStatus: chargeStatus,
-                        typeTransaction: typeTransaction,
-                    };
-                    transaction = new Transaction(transactionData);
-                    await transaction.save();
-
+                    
                     if(chargeStatus === "Done"){
                         console.log('first at pending done')
+                        const transactionData = {
+                            orderId: orderId,
+                            paymentId: chargeId,
+                            senderId: userId,
+                            paymentcurrency: currency,  // BNB, BTC, etc.
+                            paidAmount: paidAmount.toString(),
+                            paidAmountUSD: paidAmountUSD.toString(),
+                            pkgid: planId,
+                            systemStatus: systemStatus,
+                            chargeStatus: chargeStatus,
+                            typeTransaction: typeTransaction,
+                        };
+                        transaction = new Transaction(transactionData);
+                        await transaction.save();
                         await User.findByIdAndUpdate(
                             userId,
                             {
@@ -269,9 +269,19 @@ exports.handlePaymentCallback = async (req, res) => {
                     }
                     else if(chargeStatus === "Partial"){
                         console.log('first pending partial calling')
-                        transaction.totalAmountFiat = totalAmountFiat;
-                        transaction.totalAmountCurrency = totalAmountCurrency;
-                        transaction.payExtra = payExtra;
+                        const transactionData = {
+                            orderId: orderId,
+                            paymentId: chargeId,
+                            senderId: userId,
+                            pkgid: planId,
+                            systemStatus: systemStatus,
+                            chargeStatus: chargeStatus,
+                            typeTransaction: typeTransaction,
+                            totalAmountFiat: totalAmountFiat,
+                            totalAmountCurrency: totalAmountCurrency,
+                            payExtra: payExtra
+                        };
+                        transaction = new Transaction(transactionData);
                         await transaction.save();
 
                         await User.findByIdAndUpdate(
