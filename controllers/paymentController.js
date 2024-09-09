@@ -11,10 +11,16 @@ require('dotenv').config();
 // https://napi.nfg-crypto.io​/api​/checkout-client​/66db3f33e3142b2fe704da39/charge
 // https://napi.nfg-crypto.io/api/checkout-client/66db3f33e3142b2fe704da39/charge
 // "systemStatus": "Partial",
-const NFG_API_BASE_URL = process.env.NFG_API_BASE_URL;
+// const NFG_API_BASE_URL = process.env.NFG_API_BASE_URL;
 
-const publicKey = process.env.NFG_PUBLIC_KEY;
-const privateKey = process.env.NFG_PRIVATE_KEY;
+
+// const publicKey = process.env.NFG_PUBLIC_KEY;
+// const privateKey = process.env.NFG_PRIVATE_KEY;
+
+//Hamza 
+const NFG_API_BASE_URL = "https://napi.nfg-crypto.io";
+const publicKey = "1277d59947e01541f636b6e72aedf689ea32bea148096463acc0c8d6346cb68d";
+const privateKey = "73a9ca266487d40e9f8daa7884fe5e06fc9561bcad9b35a2ed4bf4165ae96e5a";
 
 // Decrypt function for callback
 const decrypt = (encryptedSecret, salt) => {
