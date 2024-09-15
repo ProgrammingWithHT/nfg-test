@@ -3,15 +3,13 @@ const {
     handlePaymentCallback,
     loginMerchant,
     paymentCheckout,
-    updateTransactionStatus,
 } = require("../controllers/paymentController");
 const router = express.Router();
 
 const checkAuthorization = require('../middlewares/authMiddleware');
 
-router.get("/auth",loginMerchant);
-router.post("/checkout",paymentCheckout);
-// router.post("/update-transaction-status",updateTransactionStatus)
+router.get("/auth",checkAuthorization,loginMerchant);
+router.post("/checkout", checkAuthorization, paymentCheckout);
 router.post('/callback', handlePaymentCallback);
 
 module.exports = router;

@@ -13,7 +13,6 @@ require('dotenv').config();
 // "systemStatus": "Partial",
 // const NFG_API_BASE_URL = process.env.NFG_API_BASE_URL;
 
-
 // const publicKey = process.env.NFG_PUBLIC_KEY;
 // const privateKey = process.env.NFG_PRIVATE_KEY;
 
@@ -21,6 +20,7 @@ require('dotenv').config();
 const NFG_API_BASE_URL = "https://napi.nfg-crypto.io";
 const publicKey = "1277d59947e01541f636b6e72aedf689ea32bea148096463acc0c8d6346cb68d";
 const privateKey = "73a9ca266487d40e9f8daa7884fe5e06fc9561bcad9b35a2ed4bf4165ae96e5a";
+
 
 // Decrypt function for callback
 const decrypt = (encryptedSecret, salt) => {
@@ -93,8 +93,19 @@ exports.loginMerchant = async (req, res) => {
             publicKey,
             privateKey,
         });
-        const token = response.data.token;
-        res.status(200).json({ token });
+        
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            {
+                $set: {
+                    nfgToken: response?.data?.token,
+                }
+            },
+            { new: true }
+        );
+        console.log(user)
+
+        res.status(200).json({ "success": true });
     } catch (error) {
         res.status(400).json({ error: 'Authentication failed' });
     }
@@ -102,11 +113,15 @@ exports.loginMerchant = async (req, res) => {
 
 // Route to create a checkout session (sale)
 exports.paymentCheckout = async (req, res) => {
-    const { nfgtoken, productName, description, price, fiatCurrency, userId, planId } = req.body;
-
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return res.status(404).json({ message: "User not found" });
+    }
+    const { productName, description, price, fiatCurrency, userId, planId } = req.body;
+    const nfgToken = user.nfgToken;
     try {
         const response = await axios.post(`${NFG_API_BASE_URL}/api/public/checkout/sale`, {
-            expireTime: 30,
+            expireTime: 60,
             currencies: currencies, // example currencies
             collectName: "false",
             collectEmail: "true",
@@ -115,9 +130,9 @@ exports.paymentCheckout = async (req, res) => {
             price: String(price),
             fiatCurrency,
             metadata: { userId, planId },
-            // linkSite: "https://threearrowstech.com/api/nfg/callback"
+            // linkSite: "https://threearrowstech.com/"
         },
-            { headers: { Authorization: `Bearer ${nfgtoken}` }, }
+            { headers: { Authorization: `Bearer ${nfgToken}` }, }
         );
 
         const checkoutUrl = `https://checkouts.nfg-crypto.io/checkout/${response?.data?.data?.identifier}`
@@ -156,144 +171,149 @@ exports.handlePaymentCallback = async (req, res) => {
                 const {
                     orderId, typeTransaction, chargeId,
                     checkoutMetadata: { userId, planId },
-                    systemStatus, chargeStatus,amount, amountUSD, currency,
-                    payExtra,totalAmountCurrency,totalAmountFiat
+                    systemStatus, chargeStatus, amount, amountUSD, currency,
+                    payExtra, totalAmountCurrency, totalAmountFiat
                 } = decryptedBody;
 
                 // Convert string values to Decimal for high precision
                 const paidAmount = new Decimal(amount);
                 const paidAmountUSD = new Decimal(amountUSD);
 
-                                
 
-                // Check if paymentId (chargeId) already exists in the Transaction table
-                let transaction = await Transaction.findOne({ paymentId: chargeId });
-
-                if (transaction) {
-                    
-                    if(systemStatus === "Done" && chargeStatus === "Done" && transaction?.payExtra){
-                        console.log('done done and payextra calling')
-                        // If paymentId exists, update the systemStatus
-                        transaction.systemStatus = systemStatus;
-                        transaction.chargeStatus = chargeStatus;
-                        transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
-                        transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
-
-                        await transaction.save();
-                        await User.findByIdAndUpdate(
-                            userId,
-                            {
-                                $set: {
-                                    systemStatus: systemStatus,
-                                    chargeStatus: chargeStatus,
-                                    pkgid: planId
-                                }
-                            },
-                            { new: true }
-                        );
-                    }
-                    else if(systemStatus === "Done" && chargeStatus === "Done"){
-                        console.log('done done calling')
-                        transaction.systemStatus = systemStatus;
-                        transaction.chargeStatus = chargeStatus;
-                        transaction.paidAmount = paidAmount.toString();
-                        transaction.paidAmountUSD = paidAmountUSD.toString();
+                if(typeTransaction === "Replenishment"){
+                    // Check if paymentId (chargeId) already exists in the Transaction table
+                    let transaction = await Transaction.findOne({ paymentId: chargeId });
     
-                        await transaction.save();
-                        await User.findByIdAndUpdate(
-                            userId,
-                            {
-                                $set: {
-                                    systemStatus: systemStatus,
-                                    chargeStatus: chargeStatus,
-                                    pkgid: planId
-                                }
-                            },
-                            { new: true }
-                        );
-                    }else if(systemStatus === "Done" && chargeStatus === "Partial"){
-                        console.log('done partial calling..')
-                        transaction.systemStatus = systemStatus;
-                        transaction.chargeStatus = chargeStatus;
-                        transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
-                        transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
-                        transaction.totalAmountCurrency = totalAmountCurrency;
-                        transaction.payExtra = payExtra;
-                        await transaction.save();
-
-                        await User.findByIdAndUpdate(
-                            userId,
-                            {
-                                $set: {
-                                    systemStatus: systemStatus,
-                                    chargeStatus: chargeStatus
-                                }
-                            },
-                            { new: true }
-                        );
-                    }
-
-                } else {
-                    console.log('pending else calling')
-                    
-                    if(chargeStatus === "Done"){
-                        console.log('first at pending done')
-                        const transactionData = {
-                            orderId: orderId,
-                            paymentId: chargeId,
-                            senderId: userId,
-                            paymentcurrency: currency,  // BNB, BTC, etc.
-                            paidAmount: paidAmount.toString(),
-                            paidAmountUSD: paidAmountUSD.toString(),
-                            pkgid: planId,
-                            systemStatus: systemStatus,
-                            chargeStatus: chargeStatus,
-                            typeTransaction: typeTransaction,
-                        };
-                        transaction = new Transaction(transactionData);
-                        await transaction.save();
-                        await User.findByIdAndUpdate(
-                            userId,
-                            {
-                                $set: {
-                                    systemStatus: systemStatus,
-                                    chargeStatus: chargeStatus,
-                                }
-                            },
-                            { new: true }
-                        );
-                    }
-                    else if(chargeStatus === "Partial"){
-                        console.log('first pending partial calling')
-                        const transactionData = {
-                            orderId: orderId,
-                            paymentId: chargeId,
-                            senderId: userId,
-                            pkgid: planId,
-                            systemStatus: systemStatus,
-                            chargeStatus: chargeStatus,
-                            typeTransaction: typeTransaction,
-                            totalAmountFiat: totalAmountFiat,
-                            totalAmountCurrency: totalAmountCurrency,
-                            payExtra: payExtra
-                        };
-                        transaction = new Transaction(transactionData);
-                        await transaction.save();
-
-                        await User.findByIdAndUpdate(
-                            userId,
-                            {
-                                $set: {
-                                    systemStatus: systemStatus,
-                                    chargeStatus: chargeStatus,
-                                }
-                            },
-                            { new: true }
-                        );
+                    if (transaction) {
+    
+                        if (systemStatus === "Done" && chargeStatus === "Done" && transaction?.payExtra) {
+                            console.log('done done and payextra calling')
+                            // If paymentId exists, update the systemStatus
+                            transaction.systemStatus = systemStatus;
+                            transaction.chargeStatus = chargeStatus;
+                            transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
+                            transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
+    
+                            await transaction.save();
+                            await User.findByIdAndUpdate(
+                                userId,
+                                {
+                                    $set: {
+                                        systemStatus: systemStatus,
+                                        chargeStatus: chargeStatus,
+                                        pkgid: planId
+                                    }
+                                },
+                                { new: true }
+                            );
+                        }
+                        else if (systemStatus === "Done" && chargeStatus === "Done") {
+                            console.log('done done calling')
+                            transaction.systemStatus = systemStatus;
+                            transaction.chargeStatus = chargeStatus;
+                            transaction.paidAmount = paidAmount.toString();
+                            transaction.paidAmountUSD = paidAmountUSD.toString();
+    
+                            await transaction.save();
+                            await User.findByIdAndUpdate(
+                                userId,
+                                {
+                                    $set: {
+                                        systemStatus: systemStatus,
+                                        chargeStatus: chargeStatus,
+                                        pkgid: planId
+                                    }
+                                },
+                                { new: true }
+                            );
+                        } else if (systemStatus === "Done" && chargeStatus === "Partial") {
+                            console.log('done partial calling..')
+                            transaction.systemStatus = systemStatus;
+                            transaction.chargeStatus = chargeStatus;
+                            transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
+                            transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
+                            transaction.totalAmountCurrency = totalAmountCurrency;
+                            transaction.payExtra = payExtra;
+                            await transaction.save();
+    
+                            await User.findByIdAndUpdate(
+                                userId,
+                                {
+                                    $set: {
+                                        systemStatus: systemStatus,
+                                        chargeStatus: chargeStatus
+                                    }
+                                },
+                                { new: true }
+                            );
+                        }
+    
+                    } else {
+                        console.log('pending else calling')
+    
+                        if (chargeStatus === "Done") {
+                            console.log('first at pending done')
+                            const transactionData = {
+                                orderId: orderId,
+                                paymentId: chargeId,
+                                senderId: userId,
+                                paymentcurrency: currency,  // BNB, BTC, etc.
+                                paidAmount: paidAmount.toString(),
+                                paidAmountUSD: paidAmountUSD.toString(),
+                                pkgid: planId,
+                                systemStatus: systemStatus,
+                                chargeStatus: chargeStatus,
+                                typeTransaction: typeTransaction,
+                            };
+                            transaction = new Transaction(transactionData);
+                            await transaction.save();
+                            await User.findByIdAndUpdate(
+                                userId,
+                                {
+                                    $set: {
+                                        systemStatus: systemStatus,
+                                        chargeStatus: chargeStatus,
+                                    }
+                                },
+                                { new: true }
+                            );
+                        }
+                        else if (chargeStatus === "Partial") {
+                            console.log('first pending partial calling')
+                            const transactionData = {
+                                orderId: orderId,
+                                paymentId: chargeId,
+                                senderId: userId,
+                                pkgid: planId,
+                                systemStatus: systemStatus,
+                                chargeStatus: chargeStatus,
+                                typeTransaction: typeTransaction,
+                                totalAmountFiat: totalAmountFiat,
+                                totalAmountCurrency: totalAmountCurrency,
+                                payExtra: payExtra
+                            };
+                            transaction = new Transaction(transactionData);
+                            await transaction.save();
+    
+                            await User.findByIdAndUpdate(
+                                userId,
+                                {
+                                    $set: {
+                                        systemStatus: systemStatus,
+                                        chargeStatus: chargeStatus,
+                                    }
+                                },
+                                { new: true }
+                            );
+                        }
                     }
                 }
 
-                return res.status(200).json({ status: 'SUCCESS', message: `${chargeStatus} Payment processed and stored in the database` });
+                return res.status(200).json({
+                    status: 'SUCCESS',
+                    message: `The payment with status "${chargeStatus}" has been processed as a ${typeTransaction} transaction.`,
+                });
+                
 
             } catch (error) {
                 console.error('Error decrypting data or processing transaction:', error.message);
