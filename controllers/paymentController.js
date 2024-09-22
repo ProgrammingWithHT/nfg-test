@@ -147,20 +147,22 @@ exports.handlePaymentCallback = async (req, res) => {
     try {
         const { body, headers } = req;
 
-        if (headers && headers.authorization && body.data) {
+        if (body) {
+        // if (headers && headers.authorization && body.data) {
             // Parse JWT token from the authorization header
-            const decryptedJwtAuthorization = parseJwt(headers.authorization);
-            const { id: walletId, salt, exp } = decryptedJwtAuthorization;
+            // const decryptedJwtAuthorization = parseJwt(headers.authorization);
+            // const { id: walletId, salt, exp } = decryptedJwtAuthorization;
 
-            if (!walletId || !salt || !exp) {
-                console.error({ status: 'ERROR', message: 'Token is not valid' });
-                return res.status(400).json({ status: 'ERROR', message: 'Invalid token or missing data' });
-            }
+            // if (!walletId || !salt || !exp) {
+            //     console.error({ status: 'ERROR', message: 'Token is not valid' });
+            //     return res.status(400).json({ status: 'ERROR', message: 'Invalid token or missing data' });
+            // }
 
             try {
                 // Decrypt salt using walletId and body data using finalSalt
-                const finalSalt = decrypt(salt, walletId);
-                const decryptedBody = JSON.parse(decrypt(body.data, finalSalt));
+                // const finalSalt = decrypt(salt, walletId);
+                // const decryptedBody = JSON.parse(decrypt(body.data, finalSalt));
+                const decryptedBody = req.body
 
                 // Store the entire decrypted body in MongoDB
                 const decryptedPayment = new DecryptedPayment({ decryptedData: decryptedBody });
@@ -185,7 +187,7 @@ exports.handlePaymentCallback = async (req, res) => {
                     if (transaction) {
 
                         if (systemStatus === "Done" && chargeStatus === "Done" && transaction?.payExtra) {
-                            // console.log('done done and payextra calling')
+                            console.log('done done and payextra calling')
                             // If paymentId exists, update the systemStatus
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
@@ -206,7 +208,7 @@ exports.handlePaymentCallback = async (req, res) => {
                             );
                         }
                         else if (systemStatus === "Done" && chargeStatus === "Done") {
-                            // console.log('done done calling')
+                            console.log('done done calling')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = paidAmount.toString();
@@ -226,7 +228,7 @@ exports.handlePaymentCallback = async (req, res) => {
                                 { new: true }
                             );
                         } else if (systemStatus === "Done" && chargeStatus === "Partial") {
-                            // console.log('done partial calling..')
+                            console.log('done partial calling..')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
@@ -251,7 +253,7 @@ exports.handlePaymentCallback = async (req, res) => {
                         // console.log('pending else calling')
 
                         if (chargeStatus === "Done") {
-                            // console.log('first at pending done')
+                            console.log('first at pending done')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
@@ -263,7 +265,7 @@ exports.handlePaymentCallback = async (req, res) => {
                                 systemStatus: systemStatus,
                                 chargeStatus: chargeStatus,
                                 typeTransaction: typeTransaction,
-                                blockchain: blockchain,
+                                chain: blockchain,
                             };
                             transaction = new Transaction(transactionData);
                             await transaction.save();
@@ -279,7 +281,7 @@ exports.handlePaymentCallback = async (req, res) => {
                             );
                         }
                         else if (chargeStatus === "Partial") {
-                            // console.log('first pending partial calling')
+                            console.log('first pending partial calling')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
@@ -292,7 +294,7 @@ exports.handlePaymentCallback = async (req, res) => {
                                 totalAmountFiat: totalAmountFiat,
                                 totalAmountCurrency: totalAmountCurrency,
                                 payExtra: payExtra,
-                                blockchain: blockchain,
+                                chain: blockchain,
                             };
                             transaction = new Transaction(transactionData);
                             await transaction.save();
