@@ -185,7 +185,7 @@ exports.handlePaymentCallback = async (req, res) => {
                     if (transaction) {
 
                         if (systemStatus === "Done" && chargeStatus === "Done" && transaction?.payExtra) {
-                            // console.log('done done and payextra calling')
+                            console.log('done done and payextra calling')
                             // If paymentId exists, update the systemStatus
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
@@ -206,7 +206,7 @@ exports.handlePaymentCallback = async (req, res) => {
                             );
                         }
                         else if (systemStatus === "Done" && chargeStatus === "Done") {
-                            // console.log('done done calling')
+                            console.log('done done calling')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = paidAmount.toString();
@@ -226,7 +226,7 @@ exports.handlePaymentCallback = async (req, res) => {
                                 { new: true }
                             );
                         } else if (systemStatus === "Done" && chargeStatus === "Partial") {
-                            // console.log('done partial calling..')
+                            console.log('done partial calling..')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
@@ -248,10 +248,10 @@ exports.handlePaymentCallback = async (req, res) => {
                         }
 
                     } else {
-                        // console.log('pending else calling')
+                        console.log('pending else calling')
 
                         if (chargeStatus === "Done") {
-                            // console.log('first at pending done')
+                            console.log('first at pending done')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
@@ -279,7 +279,7 @@ exports.handlePaymentCallback = async (req, res) => {
                             );
                         }
                         else if (chargeStatus === "Partial") {
-                            // console.log('first pending partial calling')
+                            console.log('first pending partial calling')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
