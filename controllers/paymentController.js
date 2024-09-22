@@ -146,6 +146,7 @@ exports.paymentCheckout = async (req, res) => {
 
 // Route to handle payment callback
 exports.handlePaymentCallback = async (req, res) => {
+    console.log('callback start')
     try {
         const { body, headers } = req;
 
