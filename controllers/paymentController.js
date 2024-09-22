@@ -83,8 +83,6 @@ const currencies = [
 // Route to authenticate merchant
 exports.loginMerchant = async (req, res) => {
     console.log(NFG_API_BASE_URL)
-    console.log(privateKey)
-
     try {
         const response = await axios.post(`${NFG_API_BASE_URL}/api/public/auth`, {
             publicKey,
@@ -146,7 +144,6 @@ exports.paymentCheckout = async (req, res) => {
 
 // Route to handle payment callback
 exports.handlePaymentCallback = async (req, res) => {
-    console.log('callback start')
     try {
         const { body, headers } = req;
 
@@ -188,7 +185,7 @@ exports.handlePaymentCallback = async (req, res) => {
                     if (transaction) {
 
                         if (systemStatus === "Done" && chargeStatus === "Done" && transaction?.payExtra) {
-                            console.log('done done and payextra calling')
+                            // console.log('done done and payextra calling')
                             // If paymentId exists, update the systemStatus
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
@@ -200,8 +197,6 @@ exports.handlePaymentCallback = async (req, res) => {
                                 userId,
                                 {
                                     $set: {
-                                        systemStatus: systemStatus,
-                                        chargeStatus: chargeStatus,
                                         pkgid: planId
                                     }
                                 },
@@ -209,27 +204,24 @@ exports.handlePaymentCallback = async (req, res) => {
                             );
                         }
                         else if (systemStatus === "Done" && chargeStatus === "Done") {
-                            console.log('done done calling')
+                            // console.log('done done calling')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = paidAmount.toString();
                             transaction.paidAmountUSD = paidAmountUSD.toString();
                             
-
                             await transaction.save();
                             await User.findByIdAndUpdate(
                                 userId,
                                 {
                                     $set: {
-                                        systemStatus: systemStatus,
-                                        chargeStatus: chargeStatus,
                                         pkgid: planId
                                     }
                                 },
                                 { new: true }
                             );
                         } else if (systemStatus === "Done" && chargeStatus === "Partial") {
-                            console.log('done partial calling..')
+                            // console.log('done partial calling..')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
@@ -237,24 +229,18 @@ exports.handlePaymentCallback = async (req, res) => {
                             transaction.totalAmountCurrency = totalAmountCurrency;
                             transaction.payExtra = payExtra;
                             await transaction.save();
-
-                            await User.findByIdAndUpdate(
-                                userId,
-                                {
-                                    $set: {
-                                        systemStatus: systemStatus,
-                                        chargeStatus: chargeStatus
-                                    }
-                                },
-                                { new: true }
-                            );
+                        }else if (systemStatus === "Pending") {  //hendling pending partial, pending done
+                            // console.log('done partial calling..')
+                            transaction.systemStatus = systemStatus;
+                            transaction.chargeStatus = chargeStatus;
+                            await transaction.save();
                         }
 
                     } else {
-                        console.log('pending else calling')
+                        // console.log('pending else calling')
 
                         if (chargeStatus === "Done") {
-                            console.log('first at pending done')
+                            // console.log('first at pending done')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
@@ -270,19 +256,9 @@ exports.handlePaymentCallback = async (req, res) => {
                             };
                             transaction = new Transaction(transactionData);
                             await transaction.save();
-                            await User.findByIdAndUpdate(
-                                userId,
-                                {
-                                    $set: {
-                                        systemStatus: systemStatus,
-                                        chargeStatus: chargeStatus,
-                                    }
-                                },
-                                { new: true }
-                            );
                         }
                         else if (chargeStatus === "Partial") {
-                            console.log('first pending partial calling')
+                            // console.log('first pending partial calling')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
@@ -299,17 +275,6 @@ exports.handlePaymentCallback = async (req, res) => {
                             };
                             transaction = new Transaction(transactionData);
                             await transaction.save();
-
-                            await User.findByIdAndUpdate(
-                                userId,
-                                {
-                                    $set: {
-                                        systemStatus: systemStatus,
-                                        chargeStatus: chargeStatus,
-                                    }
-                                },
-                                { new: true }
-                            );
                         }
                     }
                 }
