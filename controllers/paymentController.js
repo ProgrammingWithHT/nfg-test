@@ -1,5 +1,6 @@
 const User = require('../models/auth'); // User model for MongoDB
 const Transaction = require("../models/transaction");
+const Package = require('../models/packages'); // Package model
 const DecryptedPayment = require("../models/decryptedPayment")
 const { CpaySDK } = require('cpay-node-api-sdk');
 const axios = require('axios');
@@ -11,16 +12,10 @@ require('dotenv').config();
 // https://napi.nfg-crypto.io​/api​/checkout-client​/66db3f33e3142b2fe704da39/charge
 // https://napi.nfg-crypto.io/api/checkout-client/66db3f33e3142b2fe704da39/charge
 // "systemStatus": "Partial",
-// const NFG_API_BASE_URL = process.env.NFG_API_BASE_URL;
+const NFG_API_BASE_URL = process.env.NFG_API_BASE_URL;
 
-// const publicKey = process.env.NFG_PUBLIC_KEY;
-// const privateKey = process.env.NFG_PRIVATE_KEY;
-
-//Hamza 
-const NFG_API_BASE_URL = "https://napi.nfg-crypto.io";
-const publicKey = "1277d59947e01541f636b6e72aedf689ea32bea148096463acc0c8d6346cb68d";
-const privateKey = "73a9ca266487d40e9f8daa7884fe5e06fc9561bcad9b35a2ed4bf4165ae96e5a";
-
+const publicKey = process.env.NFG_PUBLIC_KEY;
+const privateKey = process.env.NFG_PRIVATE_KEY;
 
 // Decrypt function for callback
 const decrypt = (encryptedSecret, salt) => {
@@ -85,15 +80,16 @@ const currencies = [
     // "64886b6f636df554e46ef1ca"   //USDC (Arbitrum)
 ]
 
-
 // Route to authenticate merchant
 exports.loginMerchant = async (req, res) => {
+    console.log(NFG_API_BASE_URL)
     try {
         const response = await axios.post(`${NFG_API_BASE_URL}/api/public/auth`, {
             publicKey,
             privateKey,
         });
-        
+        // console.log("token: ",response)
+
         const user = await User.findByIdAndUpdate(
             req.user.id,
             {
@@ -103,7 +99,7 @@ exports.loginMerchant = async (req, res) => {
             },
             { new: true }
         );
-        console.log(user)
+        // console.log(user)
 
         res.status(200).json({ "success": true });
     } catch (error) {
@@ -119,6 +115,7 @@ exports.paymentCheckout = async (req, res) => {
     }
     const { productName, description, price, fiatCurrency, userId, planId } = req.body;
     const nfgToken = user.nfgToken;
+    // console.log(req.body)
     try {
         const response = await axios.post(`${NFG_API_BASE_URL}/api/public/checkout/sale`, {
             expireTime: 60,
@@ -136,6 +133,7 @@ exports.paymentCheckout = async (req, res) => {
         );
 
         const checkoutUrl = `https://checkouts.nfg-crypto.io/checkout/${response?.data?.data?.identifier}`
+        // console.log(checkoutUrl)
         // console.log(checkoutUrl)
         return res.status(200).json({ checkoutUrl });
     } catch (error) {
@@ -172,7 +170,7 @@ exports.handlePaymentCallback = async (req, res) => {
                     orderId, typeTransaction, chargeId,
                     checkoutMetadata: { userId, planId },
                     systemStatus, chargeStatus, amount, amountUSD, currency,
-                    payExtra, totalAmountCurrency, totalAmountFiat
+                    payExtra, totalAmountCurrency, totalAmountFiat, blockchain
                 } = decryptedBody;
 
                 // Convert string values to Decimal for high precision
@@ -180,20 +178,20 @@ exports.handlePaymentCallback = async (req, res) => {
                 const paidAmountUSD = new Decimal(amountUSD);
 
 
-                if(typeTransaction === "Replenishment"){
+                if (typeTransaction === "Replenishment") {
                     // Check if paymentId (chargeId) already exists in the Transaction table
                     let transaction = await Transaction.findOne({ paymentId: chargeId });
-    
+
                     if (transaction) {
-    
+
                         if (systemStatus === "Done" && chargeStatus === "Done" && transaction?.payExtra) {
-                            console.log('done done and payextra calling')
+                            // console.log('done done and payextra calling')
                             // If paymentId exists, update the systemStatus
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
                             transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
-    
+
                             await transaction.save();
                             await User.findByIdAndUpdate(
                                 userId,
@@ -208,12 +206,13 @@ exports.handlePaymentCallback = async (req, res) => {
                             );
                         }
                         else if (systemStatus === "Done" && chargeStatus === "Done") {
-                            console.log('done done calling')
+                            // console.log('done done calling')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = paidAmount.toString();
                             transaction.paidAmountUSD = paidAmountUSD.toString();
-    
+                            
+
                             await transaction.save();
                             await User.findByIdAndUpdate(
                                 userId,
@@ -227,7 +226,7 @@ exports.handlePaymentCallback = async (req, res) => {
                                 { new: true }
                             );
                         } else if (systemStatus === "Done" && chargeStatus === "Partial") {
-                            console.log('done partial calling..')
+                            // console.log('done partial calling..')
                             transaction.systemStatus = systemStatus;
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
@@ -235,7 +234,7 @@ exports.handlePaymentCallback = async (req, res) => {
                             transaction.totalAmountCurrency = totalAmountCurrency;
                             transaction.payExtra = payExtra;
                             await transaction.save();
-    
+
                             await User.findByIdAndUpdate(
                                 userId,
                                 {
@@ -247,12 +246,12 @@ exports.handlePaymentCallback = async (req, res) => {
                                 { new: true }
                             );
                         }
-    
+
                     } else {
-                        console.log('pending else calling')
-    
+                        // console.log('pending else calling')
+
                         if (chargeStatus === "Done") {
-                            console.log('first at pending done')
+                            // console.log('first at pending done')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
@@ -264,6 +263,7 @@ exports.handlePaymentCallback = async (req, res) => {
                                 systemStatus: systemStatus,
                                 chargeStatus: chargeStatus,
                                 typeTransaction: typeTransaction,
+                                blockchain: blockchain,
                             };
                             transaction = new Transaction(transactionData);
                             await transaction.save();
@@ -279,22 +279,24 @@ exports.handlePaymentCallback = async (req, res) => {
                             );
                         }
                         else if (chargeStatus === "Partial") {
-                            console.log('first pending partial calling')
+                            // console.log('first pending partial calling')
                             const transactionData = {
                                 orderId: orderId,
                                 paymentId: chargeId,
                                 senderId: userId,
+                                paymentcurrency: currency,
                                 pkgid: planId,
                                 systemStatus: systemStatus,
                                 chargeStatus: chargeStatus,
                                 typeTransaction: typeTransaction,
                                 totalAmountFiat: totalAmountFiat,
                                 totalAmountCurrency: totalAmountCurrency,
-                                payExtra: payExtra
+                                payExtra: payExtra,
+                                blockchain: blockchain,
                             };
                             transaction = new Transaction(transactionData);
                             await transaction.save();
-    
+
                             await User.findByIdAndUpdate(
                                 userId,
                                 {
@@ -313,7 +315,7 @@ exports.handlePaymentCallback = async (req, res) => {
                     status: 'SUCCESS',
                     message: `The payment with status "${chargeStatus}" has been processed as a ${typeTransaction} transaction.`,
                 });
-                
+
 
             } catch (error) {
                 console.error('Error decrypting data or processing transaction:', error.message);
@@ -324,5 +326,132 @@ exports.handlePaymentCallback = async (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ error: 'Error processing callback' });
+    }
+};
+
+//Route to Create a checkout of fiat Payment
+exports.fiatPaymentCheckout = async (req, res) => {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return res.status(404).json({ message: "User not found" });
+    }
+    try {
+        const { customId, fiatAmount, fiatCurrency, colorCode, screenTitle, pkgid } = req.body;
+
+        // Constructing REST API URL
+        const baseUrl = "https://us-central1-nfgdatabasedemo.cloudfunctions.net/app/api/invoice_external";
+        const fiatCheckoutUrl = `${baseUrl}?apiKey=${process.env.NFG_FIAT_API_KEY}&customId=${customId}&onRampProvider=transak&defaultFiatCurrency=${fiatCurrency}&defaultFiatAmount=${fiatAmount}&colorCode=${colorCode}&screenTitle=${screenTitle}&pkgid=${pkgid}`;
+
+        res.json({ fiatCheckoutUrl });
+    } catch (error) {
+        res.status(400).json({ success: false, error: 'Failed to create fiat checkout session' });
+    }
+};
+
+
+// Route to handle payment callback
+exports.fiatHandlePaymentCallback = async (req, res) => {
+    console.log('calling... fiat callback')
+    try {
+        const paymentData = req.body;
+        const paymentDataHeaders = req.headers;
+        // Store the entire decrypted body in MongoDB
+        const decryptedPayment = new DecryptedPayment({ decryptedData: paymentData });
+        const decryptedPayment1 = new DecryptedPayment({ decryptedData: paymentDataHeaders });
+        await decryptedPayment.save();
+        await decryptedPayment1.save();
+            
+        
+        if (headers && headers.authorization && paymentData) {
+
+            const secretToken = process.env.NFG_FIAT_SECRET_KEY
+            const token = headers.authorization;
+            if(token === secretToken){
+                // Map the fields from the paymentData to the transactionSchema
+
+                    // Find the package ID based on the transferred amount
+                const package = await Package.findOne({ amount: paymentData.transferedAmount });
+
+                const newTransaction = new Transaction({
+                    orderId: paymentData.customerID, // Assuming customerID is used as orderId
+                    paymentId: paymentData.blockchainTxId, // Transaction ID from the blockchain
+                    systemStatus: "Done", // Based on your requirement; could be dynamic
+                    chargeStatus: "Done", // Could vary depending on the transaction success/failure
+                    senderId: paymentData?.customerID, // Enduser's ID (email or another identifier)
+                    receiverId: paymentData?.accountEDTO, // Wallet that received the funds
+                    paymentcurrency: paymentData?.currency, // Currency (e.g., USDT)
+                    paidAmount: paymentData?.transferedAmount, // Net amount received
+                    paidAmountUSD: "", // If you want to track equivalent in USD
+                    pkgid: package ? package?._id : '', // Fetch the actual package ID if applicable
+                    typeTransaction: "Deposite",
+                    chain: paymentData.chain, // Blockchain (e.g., MATIC)
+                });
+        
+                // Save the new transaction to the MongoDB database
+                await newTransaction.save();
+            }
+        }
+
+
+        res.status(200).json({ message: "Payment processed" });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Error Processing Fiat Payment' });
+    }
+};
+
+//Route to Get User Transaction List
+exports.getUserTransactionsList = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        // Validate if userId is provided
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "User ID is required"
+            });
+        }
+
+        // Find all transactions where senderId matches the userId
+        const transactions = await Transaction.find({ senderId: userId });
+
+        if (!transactions.length) {
+            return res.status(404).json({
+                success: false,
+                message: "No transactions found for this user"
+            });
+        }
+
+        // Find all unique package IDs from the transactions
+        const packageIds = [...new Set(transactions.map(transaction => transaction.pkgid))];
+
+        // Fetch all package details that match the package IDs
+        const packages = await Package.find({ _id: { $in: packageIds } });
+
+        // Create a package lookup map
+        const packageMap = packages.reduce((map, pkg) => {
+            map[pkg._id] = pkg;
+            return map;
+        }, {});
+
+        // Merge package details into transactions
+        const mergedTransactions = transactions.map(transaction => {
+            return {
+                ...transaction.toObject(),
+                package: packageMap[transaction.pkgid] || null
+            };
+        });
+
+        // Send the response with merged transactions
+        res.status(200).json({
+            success: true,
+            data: mergedTransactions
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };

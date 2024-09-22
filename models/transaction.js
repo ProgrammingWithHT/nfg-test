@@ -19,6 +19,8 @@ const transactionSchema = new mongoose.Schema({
     totalAmountCurrency: {type: Number, default: null},
     payExtra: {type: Number, default: null},
 
+    chain: {type: String, required: true},
+
     
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
