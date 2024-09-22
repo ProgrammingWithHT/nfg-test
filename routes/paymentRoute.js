@@ -17,6 +17,6 @@ router.post('/callback', handlePaymentCallback);
 router.post('/user-transaction-list',checkAuthorization, getUserTransactionsList);
 
 router.post('/fiatcheckout',checkAuthorization, fiatPaymentCheckout);
-router.post('/callback',fiatHandlePaymentCallback);
+// router.post('/callback',fiatHandlePaymentCallback);
 
 module.exports = router;
