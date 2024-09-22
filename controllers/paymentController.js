@@ -83,6 +83,8 @@ const currencies = [
 // Route to authenticate merchant
 exports.loginMerchant = async (req, res) => {
     console.log(NFG_API_BASE_URL)
+    console.log(publicKey)
+    console.log(privateKey)
     try {
         const response = await axios.post(`${NFG_API_BASE_URL}/api/public/auth`, {
             publicKey,
