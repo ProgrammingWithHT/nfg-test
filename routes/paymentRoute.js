@@ -13,10 +13,10 @@ const checkAuthorization = require('../middlewares/authMiddleware');
 
 router.get("/auth",checkAuthorization,loginMerchant);
 router.post("/checkout", checkAuthorization, paymentCheckout);
-router.post('/callback', handlePaymentCallback);
+router.post('/crypto-callback', handlePaymentCallback);
 router.post('/user-transaction-list',checkAuthorization, getUserTransactionsList);
 
 router.post('/fiatcheckout',checkAuthorization, fiatPaymentCheckout);
-// router.post('/callback',fiatHandlePaymentCallback);
+router.post('/callback',fiatHandlePaymentCallback);
 
 module.exports = router;
