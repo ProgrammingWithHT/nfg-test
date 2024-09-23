@@ -6,7 +6,7 @@ const transactionSchema = new mongoose.Schema({
     systemStatus: { type: String, required: true }, // Status of the transaction (e.g. "Done","Pending")
     chargeStatus: { type: String, required: true }, // Status of the transaction (e.g. "Done","Partial")
     senderId: { type: String, required: true }, // User ID who made the transaction
-    receiverId: {type: String, default: ''},
+    receiverId: {type: String, default: '0'},
     paymentcurrency: { type: String, default: '' }, // Currency used for the payment
     paidAmount: { type: Number, default: 0 }, // Amount paid in cryptocurrency (e.g. BNB)
     paidAmountUSD: { type: Number, default: 0 }, // Equivalent amount in USD

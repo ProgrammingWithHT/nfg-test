@@ -191,6 +191,7 @@ exports.handlePaymentCallback = async (req, res) => {
                             transaction.chargeStatus = chargeStatus;
                             transaction.paidAmount = new Decimal(transaction.paidAmount).plus(paidAmount).toString(); // Sum of paidAmount
                             transaction.paidAmountUSD = new Decimal(transaction.paidAmountUSD).plus(paidAmountUSD).toString(); // Sum of paidAmountUSD
+                            transaction.payExtra = null;
 
                             await transaction.save();
                             await User.findByIdAndUpdate(
